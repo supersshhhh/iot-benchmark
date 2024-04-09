@@ -303,7 +303,8 @@ public class ConfigDescriptor {
         config.setENABLE_RECORDS_AUTO_CONVERT_TABLET(
             Boolean.parseBoolean(
                 properties.getProperty(
-                    "ENABLE_RECORDS_AUTO_CONVERT_TABLET", config.isENABLE_RECORDS_AUTO_CONVERT_TABLET() + "")));
+                    "ENABLE_RECORDS_AUTO_CONVERT_TABLET",
+                    config.isENABLE_RECORDS_AUTO_CONVERT_TABLET() + "")));
         config.setENABLE_THRIFT_COMPRESSION(
             Boolean.parseBoolean(
                 properties.getProperty(
