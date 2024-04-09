@@ -300,6 +300,10 @@ public class ConfigDescriptor {
         config.setDATA_SEED(
             Long.parseLong(properties.getProperty("DATA_SEED", config.getDATA_SEED() + "")));
 
+        config.setENABLE_RECORDS_AUTO_CONVERT_TABLET(
+            Boolean.parseBoolean(
+                properties.getProperty(
+                    "ENABLE_RECORDS_AUTO_CONVERT_TABLET", config.isENABLE_RECORDS_AUTO_CONVERT_TABLET() + "")));
         config.setENABLE_THRIFT_COMPRESSION(
             Boolean.parseBoolean(
                 properties.getProperty(

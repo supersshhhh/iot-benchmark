@@ -165,6 +165,7 @@ public class IoTDB implements IDatabase {
                   .username(dbConfig.getUSERNAME())
                   .password(dbConfig.getPASSWORD())
                   .version(Version.V_1_0)
+                  .enableRecordsAutoConvertTablet(config.isENABLE_RECORDS_AUTO_CONVERT_TABLET())
                   .build();
           metaSession.open(config.isENABLE_THRIFT_COMPRESSION());
           sessionListMap.put(metaSession, createTimeseries(schemaList));
@@ -179,6 +180,7 @@ public class IoTDB implements IDatabase {
                     .username(dbConfig.getUSERNAME())
                     .password(dbConfig.getPASSWORD())
                     .version(Version.V_1_0)
+                    .enableRecordsAutoConvertTablet(config.isENABLE_RECORDS_AUTO_CONVERT_TABLET())
                     .build();
             metaSession.open(config.isENABLE_THRIFT_COMPRESSION());
             keys.add(metaSession);

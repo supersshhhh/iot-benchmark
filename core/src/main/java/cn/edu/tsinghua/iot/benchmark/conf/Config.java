@@ -203,6 +203,8 @@ public class Config {
   private long DATA_SEED = 666L;
 
   // 被测系统IoTDB的参数
+  /** session 接口是否启用enableRecordsAutoConvertTablet */
+  private boolean ENABLE_RECORDS_AUTO_CONVERT_TABLET = false;
   /** if enable the thrift compression */
   private boolean ENABLE_THRIFT_COMPRESSION = false;
   /** Storage Group Allocation Strategy, currently supported hash/mode/div */
@@ -1822,5 +1824,13 @@ public class Config {
       total += Double.parseDouble(proportion[i]);
     }
     return total > 1e-7;
+  }
+
+  public boolean isENABLE_RECORDS_AUTO_CONVERT_TABLET() {
+    return ENABLE_RECORDS_AUTO_CONVERT_TABLET;
+  }
+
+  public void setENABLE_RECORDS_AUTO_CONVERT_TABLET(boolean ENABLE_RECORDS_AUTO_CONVERT_TABLET) {
+    this.ENABLE_RECORDS_AUTO_CONVERT_TABLET = ENABLE_RECORDS_AUTO_CONVERT_TABLET;
   }
 }

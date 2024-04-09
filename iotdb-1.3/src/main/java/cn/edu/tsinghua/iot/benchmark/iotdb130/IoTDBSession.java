@@ -164,6 +164,7 @@ public class IoTDBSession extends IoTDBSessionBase {
     for (int i = 0; i < dbConfig.getHOST().size(); i++) {
       hostUrls.add(dbConfig.getHOST().get(i) + ":" + dbConfig.getPORT().get(i));
     }
+    LOGGER.info("ENABLE_RECORDS_AUTO_CONVERT_TABLET is " + config.isENABLE_RECORDS_AUTO_CONVERT_TABLET() + '.');
     sessionWrapper =
         new BenchmarkSession(
             new Session.Builder()
@@ -172,6 +173,7 @@ public class IoTDBSession extends IoTDBSessionBase {
                 .password(dbConfig.getPASSWORD())
                 .enableRedirection(true)
                 .version(Version.V_1_0)
+                .enableRecordsAutoConvertTablet(config.isENABLE_RECORDS_AUTO_CONVERT_TABLET())
                 .build());
   }
 
