@@ -33,20 +33,16 @@ import org.slf4j.LoggerFactory;
 import java.sql.SQLException;
 
 public class App {
-  private static Logger LOGGER = LoggerFactory.getLogger(Config.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(App.class);
 
   public static void main(String[] args) throws SQLException {
     long initialHeapSize = Runtime.getRuntime().totalMemory();
     long maxHeapSize = Runtime.getRuntime().maxMemory();
     LOGGER.info(
-        "Initial Heap Size: "
-            + initialHeapSize
-            + "bytes, Max Heap Size: "
-            + maxHeapSize
-            + "bytes.");
+        "Initial Heap Size: {} bytes, Max Heap Size: {} bytes. ", initialHeapSize, maxHeapSize);
 
     if (args == null || args.length == 0) {
-      args = new String[] {"-cf", "configuration/conf/config.properties"};
+      args = new String[] {"-cf", "configuration/conf"};
     }
     CommandCli cli = new CommandCli();
     if (!cli.init(args)) {
@@ -54,7 +50,7 @@ public class App {
     }
     Runtime.getRuntime().addShutdownHook(new CSVShutdownHook());
     Config config = ConfigDescriptor.getInstance().getConfig();
-    BaseMode baseMode = null;
+    BaseMode baseMode;
     switch (config.getBENCHMARK_WORK_MODE()) {
       case TEST_WITH_DEFAULT_PATH:
         baseMode = new TestWithDefaultPathMode();

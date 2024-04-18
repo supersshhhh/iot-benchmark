@@ -19,18 +19,17 @@
 
 package cn.edu.tsinghua.iot.benchmark.mode;
 
+import cn.edu.tsinghua.iot.benchmark.client.DataClient;
 import cn.edu.tsinghua.iot.benchmark.client.operation.Operation;
 import cn.edu.tsinghua.iot.benchmark.conf.Config;
 import cn.edu.tsinghua.iot.benchmark.conf.ConfigDescriptor;
-import cn.edu.tsinghua.iot.benchmark.measurement.Measurement;
 import cn.edu.tsinghua.iot.benchmark.tsdb.DBConfig;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class VerificationWriteMode extends BaseMode {
-
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
   @Override
@@ -40,17 +39,21 @@ public class VerificationWriteMode extends BaseMode {
     if (config.isIS_DOUBLE_WRITE()) {
       dbConfigs.add(config.getANOTHER_DBConfig());
     }
-    return cleanUpData(dbConfigs, measurement) && registerSchema(measurement);
+    if (config.isIS_DELETE_DATA() && (!cleanUpData(dbConfigs))) {
+      return false;
+    }
+    if (config.isCREATE_SCHEMA() && (!registerSchema())) {
+      return false;
+    }
+    return true;
   }
 
   @Override
   protected void postCheck() {
-    List<Measurement> threadsMeasurements = new ArrayList<>();
     finalMeasure(
-        measurement,
-        threadsMeasurements,
-        start,
-        dataClients,
-        new ArrayList<>(Arrays.asList(Operation.INGESTION)));
+        baseModeMeasurement,
+        dataClients.stream().map(DataClient::getMeasurement),
+        startTime,
+        Collections.singletonList(Operation.INGESTION));
   }
 }

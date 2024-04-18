@@ -25,6 +25,7 @@ import cn.edu.tsinghua.iot.benchmark.conf.Constants;
 import cn.edu.tsinghua.iot.benchmark.measurement.enums.SystemMetrics;
 import cn.edu.tsinghua.iot.benchmark.measurement.persistence.TestDataPersistence;
 import cn.edu.tsinghua.iot.benchmark.mode.enums.BenchmarkMode;
+import cn.edu.tsinghua.iot.benchmark.utils.NamedThreadFactory;
 import cn.edu.tsinghua.iot.benchmark.utils.ZipUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +35,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.sql.Date;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Map;
@@ -50,7 +50,6 @@ public class CSVRecorder extends TestDataPersistence {
   /** The count of write retry */
   private static final int WRITE_RETRY_COUNT = 5;
 
-  private static final int MAX_COMPRESS_TIME = 10 * 60 * 1000;
   /** reentrantLock used for writing result into file */
   private static final ReentrantLock reentrantLock = new ReentrantLock(true);
 
@@ -100,10 +99,8 @@ public class CSVRecorder extends TestDataPersistence {
     }
     localName = localName.replace("-", "_");
     localName = localName.replace(".", "_");
-    Date date = new Date(EXP_TIME);
-    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd");
-    String day = dateFormat.format(date);
-    confDir = System.getProperty(Constants.BENCHMARK_CONF);
+
+    confDir = System.getProperty(Constants.BENCHMARK_CONF) + "/config.properties";
     dataDir = confDir.substring(0, confDir.length() - 23) + "/data";
     csvDir = dataDir + "/csv";
     File dataFile = new File(dataDir);
@@ -141,7 +138,7 @@ public class CSVRecorder extends TestDataPersistence {
         LOGGER.error("", ioException);
       }
     }
-    service = Executors.newSingleThreadExecutor();
+    service = Executors.newSingleThreadExecutor(new NamedThreadFactory("CSVRecorder"));
   }
 
   /** write header of csv file */

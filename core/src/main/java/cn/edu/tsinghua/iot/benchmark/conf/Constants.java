@@ -27,6 +27,8 @@ public class Constants {
   public static final long START_TIMESTAMP =
       TimeUtils.convertDateStrToTimestamp(config.getSTART_TIME());
   public static final String CONSOLE_PREFIX = "iot-benchmark>";
+
+  public static final String BENCHMARK_HOME = "BENCHMARK_HOME";
   public static final String BENCHMARK_CONF = "benchmark-conf";
 
   public static final String MYSQL_DRIVENAME = "com.mysql.jdbc.Driver";
@@ -81,7 +83,7 @@ public class Constants {
 
   public static final String INFLUXDB_CLASS = "cn.edu.tsinghua.iot.benchmark.influxdb.InfluxDB";
   public static final String INFLUXDB2_CLASS = "cn.edu.tsinghua.iot.benchmark.influxdb2.InfluxDB";
-
+  public static final String CNOSDB_CLASS = "cn.edu.tsinghua.iot.benchmark.cnosdb.CnosDB";
   public static final String FAKEDB_CLASS = "cn.edu.tsinghua.iot.benchmark.tsdb.fakedb.FakeDB";
   public static final String KAIROSDB_CLASS = "cn.edu.tsinghua.iot.benchmark.kairosdb.KairosDB";
   public static final String OPENTSDB_CLASS = "cn.edu.tsinghua.iot.benchmark.opentsdb.OpenTSDB";

@@ -60,11 +60,11 @@ public class DBWrapper implements IDatabase {
   private static final String ERROR_LOG = "Failed to do {} because unexpected exception: ";
 
   private List<IDatabase> databases = new ArrayList<>();
-  private Measurement measurement;
+  private final Measurement measurement = new Measurement();
   private TestDataPersistence recorder;
 
   /** Use DBFactory to get database */
-  public DBWrapper(List<DBConfig> dbConfigs, Measurement measurement) {
+  public DBWrapper(List<DBConfig> dbConfigs) {
     DBFactory dbFactory = new DBFactory();
     for (DBConfig dbConfig : dbConfigs) {
       try {
@@ -77,9 +77,12 @@ public class DBWrapper implements IDatabase {
         LOGGER.error("Failed to get database because", e);
       }
     }
-    this.measurement = measurement;
     PersistenceFactory persistenceFactory = new PersistenceFactory();
     recorder = persistenceFactory.getPersistence();
+  }
+
+  public Measurement getMeasurement() {
+    return measurement;
   }
 
   @Override
@@ -318,6 +321,31 @@ public class DBWrapper implements IDatabase {
   }
 
   @Override
+  public Status groupByQueryOrderByDesc(GroupByQuery groupByQuery) {
+    Status status = null;
+    Operation operation = Operation.GROUP_BY_QUERY_ORDER_BY_TIME_DESC;
+    String device = "No Device";
+    if (groupByQuery.getDeviceSchema().size() > 0) {
+      device = groupByQuery.getDeviceSchema().get(0).getDevice();
+    }
+    try {
+      List<Status> statuses = new ArrayList<>();
+      for (IDatabase database : databases) {
+        long start = System.nanoTime();
+        status = database.groupByQueryOrderByDesc(groupByQuery);
+        long end = System.nanoTime();
+        status.setTimeCost(end - start);
+        handleQueryOperation(status, operation, device);
+        statuses.add(status);
+      }
+      doComparisonByRecord(groupByQuery, operation, statuses);
+    } catch (Exception e) {
+      handleUnexpectedQueryException(operation, e, device);
+    }
+    return status;
+  }
+
+  @Override
   public Status latestPointQuery(LatestPointQuery latestPointQuery) {
     Status status = null;
     Operation operation = Operation.LATEST_POINT_QUERY;
@@ -510,19 +538,17 @@ public class DBWrapper implements IDatabase {
     double createSchemaTimeInSecond = 0.0;
     LOGGER.info("Registering schema...");
     try {
-      if (config.isCREATE_SCHEMA()) {
-        for (IDatabase database : databases) {
-          Double registerTime = database.registerSchema(schemaList);
-          if (null == registerTime) {
-            LOGGER.error("Failed to create schema for {}.", database.getClass().getName());
-            return null;
-          }
-          createSchemaTimeInSecond = Math.max(createSchemaTimeInSecond, registerTime);
+      for (IDatabase database : databases) {
+        Double registerTime = database.registerSchema(schemaList);
+        if (null == registerTime) {
+          LOGGER.error("Failed to create schema for {}.", database.getClass().getName());
+          return null;
         }
+        createSchemaTimeInSecond = Math.max(createSchemaTimeInSecond, registerTime);
       }
-      measurement.setCreateSchemaTime(createSchemaTimeInSecond);
+      measurement.setCreateSchemaFinishTime(createSchemaTimeInSecond);
     } catch (Exception e) {
-      measurement.setCreateSchemaTime(0.0);
+      measurement.setCreateSchemaFinishTime(0.0);
       throw new TsdbException(e);
     }
     return createSchemaTimeInSecond;

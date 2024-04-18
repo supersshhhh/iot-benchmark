@@ -63,8 +63,6 @@ public abstract class DataClient implements Runnable {
   protected DBWrapper dbWrapper = null;
   /** Related Schema */
   protected final List<DeviceSchema> clientDeviceSchemas;
-  /** Measurement */
-  protected Measurement measurement;
   /** Total number of loop */
   protected long totalLoop = 0;
   /** Loop Index, using for loop and log */
@@ -86,7 +84,6 @@ public abstract class DataClient implements Runnable {
     this.clientThreadId = id;
     this.clientDeviceSchemas =
         MetaDataSchema.getInstance().getDeviceSchemaByClientId(clientThreadId);
-    this.measurement = new Measurement();
     this.service =
         Executors.newSingleThreadScheduledExecutor(
             new NamedThreadFactory("ShowWorkProgress-" + clientThreadId));
@@ -135,7 +132,7 @@ public abstract class DataClient implements Runnable {
           // print current progress periodically
           service.scheduleAtFixedRate(
               () -> {
-                String percent = String.format("%.2f", (loopIndex + 1) * 100.0D / this.totalLoop);
+                String percent = String.format("%.2f", loopIndex * 100.0D / this.totalLoop);
                 LOGGER.info("{} {}% workload is done.", currentThread, percent);
               },
               1,
@@ -161,7 +158,7 @@ public abstract class DataClient implements Runnable {
   }
 
   public Measurement getMeasurement() {
-    return measurement;
+    return dbWrapper.getMeasurement();
   }
 
   /** Do test, Notice please use `isStop` parameters to control */
@@ -174,7 +171,7 @@ public abstract class DataClient implements Runnable {
     if (config.isIS_DOUBLE_WRITE()) {
       dbConfigs.add(config.getANOTHER_DBConfig());
     }
-    dbWrapper = new DBWrapper(dbConfigs, measurement);
+    dbWrapper = new DBWrapper(dbConfigs);
   }
 
   /** Stop client */

@@ -169,7 +169,13 @@ public class IoTDBSessionBase extends IoTDB {
   }
 
   @Override
-  protected Status executeQueryAndGetStatus(String sql, Operation operation) {
+  protected Status addTailClausesAndExecuteQueryAndGetStatus(String sql, Operation operation) {
+    if (config.getRESULT_ROW_LIMIT() >= 0) {
+      sql += " limit " + config.getRESULT_ROW_LIMIT();
+    }
+    if (config.isALIGN_BY_DEVICE()) {
+      sql += " align by device";
+    }
     String executeSQL;
     if (config.isIOTDB_USE_DEBUG() && random.nextDouble() < config.getIOTDB_USE_DEBUG_RATIO()) {
       executeSQL = "debug " + sql;
@@ -230,7 +236,8 @@ public class IoTDBSessionBase extends IoTDB {
                   isOk.set(false);
                 }
                 long resultPointNum = line.get();
-                if (!Operation.LATEST_POINT_QUERY.equals(operation)) {
+                if (!Operation.LATEST_POINT_QUERY.equals(operation)
+                    || !config.isALIGN_BY_DEVICE()) {
                   resultPointNum *= config.getQUERY_SENSOR_NUM();
                   resultPointNum *= config.getQUERY_DEVICE_NUM();
                 }
@@ -496,5 +503,21 @@ public class IoTDBSessionBase extends IoTDB {
       return new Status(false, 0, e, e.toString());
     }
     return new Status(true);
+  }
+
+  @Override
+  public void close() throws TsdbException {
+    try {
+      if (sessionWrapper != null) {
+        sessionWrapper.close();
+      }
+      if (ioTDBConnection != null) {
+        ioTDBConnection.close();
+      }
+    } catch (IoTDBConnectionException e) {
+      throw new TsdbException(e);
+    } finally {
+      this.service.shutdown();
+    }
   }
 }

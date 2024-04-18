@@ -95,6 +95,9 @@ public class GenerateDataMixClient extends GenerateBaseClient {
             case VALUE_RANGE_QUERY_ORDER_BY_TIME_DESC:
               dbWrapper.valueRangeQueryOrderByDesc(queryWorkLoad.getValueRangeQuery());
               break;
+            case GROUP_BY_QUERY_ORDER_BY_TIME_DESC:
+              dbWrapper.groupByQueryOrderByDesc(queryWorkLoad.getGroupByQuery());
+              break;
             default:
               LOGGER.error("Unsupported operation sensorType {}", operation);
           }
@@ -140,6 +143,9 @@ public class GenerateDataMixClient extends GenerateBaseClient {
           }
         }
         for (int j = 0; j < innerLoop; j++) {
+          if (isStop.get()) {
+            return true;
+          }
           IBatch batch = dataWorkLoad.getOneBatch();
           if (checkBatch(batch)) {
             dbWrapper.insertOneBatchWithCheck(batch);

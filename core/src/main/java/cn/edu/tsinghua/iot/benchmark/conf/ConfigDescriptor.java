@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
@@ -69,12 +70,12 @@ public class ConfigDescriptor {
 
   /** load properties from config.properties */
   private void loadProps() {
-    String url =
-        System.getProperty(Constants.BENCHMARK_CONF, "configuration/conf/config.properties");
+    String url = System.getProperty(Constants.BENCHMARK_CONF, "configuration/conf");
     if (url != null) {
+      url += "/config.properties";
       InputStream inputStream;
       try {
-        inputStream = new FileInputStream(new File(url));
+        inputStream = new FileInputStream(url);
       } catch (FileNotFoundException e) {
         LOGGER.warn("Fail to find config file {}", url);
         return;
@@ -352,6 +353,10 @@ public class ConfigDescriptor {
                 properties.getProperty("TDENGINE_REPLICA", config.getTDENGINE_REPLICA() + "")));
         config.setINFLUXDB_ORG(
             properties.getProperty("INFLUXDB_ORG", String.valueOf(config.getINFLUXDB_ORG())));
+        config.setCNOSDB_SHARD_NUMBER(
+            Integer.parseInt(
+                properties.getProperty(
+                    "CNOSDB_SHARD_NUMBER", config.getCNOSDB_SHARD_NUMBER() + "")));
         config.setOP_MIN_INTERVAL(
             Long.parseLong(
                 properties.getProperty("OP_MIN_INTERVAL", config.getOP_MIN_INTERVAL() + "")));
@@ -441,6 +446,12 @@ public class ConfigDescriptor {
                 properties.getProperty("GROUP_BY_TIME_UNIT", config.getGROUP_BY_TIME_UNIT() + "")));
         config.setQUERY_SEED(
             Long.parseLong(properties.getProperty("QUERY_SEED", config.getQUERY_SEED() + "")));
+        config.setRESULT_ROW_LIMIT(
+            Long.parseLong(
+                properties.getProperty("RESULT_ROW_LIMIT", config.getRESULT_ROW_LIMIT() + "")));
+        config.setALIGN_BY_DEVICE(
+            Boolean.parseBoolean(
+                properties.getProperty("ALIGN_BY_DEVICE", config.isALIGN_BY_DEVICE() + "")));
 
         config.setWORKLOAD_BUFFER_SIZE(
             Integer.parseInt(
@@ -465,6 +476,10 @@ public class ConfigDescriptor {
         config.setLOG_PRINT_INTERVAL(
             Integer.parseInt(
                 properties.getProperty("LOG_PRINT_INTERVAL", config.getLOG_PRINT_INTERVAL() + "")));
+        config.setRESULT_PRINT_INTERVAL(
+            Integer.parseInt(
+                properties.getProperty(
+                    "RESULT_PRINT_INTERVAL", config.getRESULT_PRINT_INTERVAL() + "")));
 
         config.setTEST_DATA_STORE_IP(
             properties.getProperty("TEST_DATA_STORE_IP", config.getTEST_DATA_STORE_IP()));
@@ -593,10 +608,32 @@ public class ConfigDescriptor {
     }
     result &= checkDeviceNumPerWrite();
     result &= checkTag();
+    if (!commonlyUseDB()) {
+      if (config.isALIGN_BY_DEVICE()) {
+        result = false;
+        LOGGER.error("ALIGN_BY_DEVICE is not supported for this database");
+      }
+      if (config.getRESULT_ROW_LIMIT() >= 0) {
+        result = false;
+        LOGGER.error("RESULT_ROW_LIMIT is not supported for this database");
+      }
+    }
     return result;
   }
 
+  private boolean commonlyUseDB() {
+    DBType dbType = config.getDbConfig().getDB_SWITCH().getType();
+    DBVersion dbVersion = config.getDbConfig().getDB_SWITCH().getVersion();
+    return Objects.equals(dbVersion, DBVersion.IOTDB_110)
+        || Objects.equals(dbVersion, DBVersion.TDengine_3)
+        || (Objects.equals(dbType, DBType.InfluxDB) && dbVersion == null);
+  }
+
   private boolean checkOperationProportion() {
+    while (config.getOPERATION_PROPORTION().split(":").length
+        != config.getOPERATION_PROPORTION_LEN()) {
+      config.setOPERATION_PROPORTION(config.getOPERATION_PROPORTION() + ":0");
+    }
     String[] op = config.getOPERATION_PROPORTION().split(":");
     int minOps = 0;
     for (String s : op) {
@@ -604,7 +641,7 @@ public class ConfigDescriptor {
         minOps++;
       }
     }
-    if (minOps > config.getLOOP()) {
+    if (config.getLOOP() != 0 && minOps > config.getLOOP()) {
       LOGGER.error("Loop is too small that can't meet the need of OPERATION_PROPORTION");
       return false;
     }
@@ -696,6 +733,8 @@ public class ConfigDescriptor {
       }
     } else if (dbConfig.getDB_SWITCH() == DBSwitch.DB_TIMESCALE) {
       // support timescaledb
+      result = true;
+    } else if (dbConfig.getDB_SWITCH() == DBSwitch.DB_CNOS) {
       result = true;
     }
     if (!result) {

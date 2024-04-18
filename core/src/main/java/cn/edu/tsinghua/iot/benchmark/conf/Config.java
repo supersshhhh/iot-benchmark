@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iot.benchmark.conf;
 
 import cn.edu.tsinghua.iot.benchmark.entity.Sensor;
 import cn.edu.tsinghua.iot.benchmark.entity.enums.SensorType;
-import cn.edu.tsinghua.iot.benchmark.function.Function;
 import cn.edu.tsinghua.iot.benchmark.function.FunctionParam;
 import cn.edu.tsinghua.iot.benchmark.function.FunctionXml;
 import cn.edu.tsinghua.iot.benchmark.mode.enums.BenchmarkMode;
@@ -35,11 +34,13 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Unmarshaller;
 
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class Config {
-  private static Logger LOGGER = LoggerFactory.getLogger(Config.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(Config.class);
 
   // 初始化
   // 初始化：清理数据
@@ -245,6 +246,10 @@ public class Config {
   /** the org name of influxdb */
   private String INFLUXDB_ORG = "company1";
 
+  // 被测系统是CnosDB时的参数
+  /** the shard number of cnosdb, which affects the parallelism of write and query operations */
+  private int CNOSDB_SHARD_NUMBER = 32;
+
   // Operation 相关参数
   /**
    * The operation execution interval if operation time > OP_MIN_INTERVAL, then execute next
@@ -321,7 +326,9 @@ public class Config {
    * value filtering in reverse order, Eg. select v1... from data where time > ? and time < ? and v1
    * > ? and device in ? order by time desc
    */
-  private String OPERATION_PROPORTION = "1:0:0:0:0:0:0:0:0:0:0";
+  private String OPERATION_PROPORTION = "1:0:0:0:0:0:0:0:0:0:0:0";
+
+  private final int OPERATION_PROPORTION_LEN = 12;
   /** The number of sensors involved in each query */
   private int QUERY_SENSOR_NUM = 1;
   /** The number of devices involved in each query */
@@ -339,6 +346,9 @@ public class Config {
   private long GROUP_BY_TIME_UNIT = 20000;
   /** Query random seed */
   private long QUERY_SEED = 151658L;
+
+  private long RESULT_ROW_LIMIT = -1;
+  private boolean ALIGN_BY_DEVICE = false;
 
   // workload 相关部分
   /** The size of workload buffer size */
@@ -361,6 +371,8 @@ public class Config {
   private boolean IS_QUIET_MODE = true;
   /** Print test progress log interval in second */
   private int LOG_PRINT_INTERVAL = 5;
+
+  private int RESULT_PRINT_INTERVAL = 3600;
 
   // 输出：数据库配置，当前支持IoTDB和MySQL
   /** The Ip of database */
@@ -407,8 +419,9 @@ public class Config {
   /** init inner functions */
   public void initInnerFunction() {
     FunctionXml xml = null;
+    String configFolder = System.getProperty(Constants.BENCHMARK_CONF, "configuration/conf");
     try {
-      InputStream input = Function.class.getResourceAsStream("/function.xml");
+      InputStream input = Files.newInputStream(Paths.get(configFolder + "/function.xml"));
       JAXBContext context = JAXBContext.newInstance(FunctionXml.class, FunctionParam.class);
       Unmarshaller unmarshaller = context.createUnmarshaller();
       xml = (FunctionXml) unmarshaller.unmarshal(input);
@@ -497,15 +510,15 @@ public class Config {
 
   /** According to the number of sensors, initialize the sensor number */
   void initSensorCodes() {
-    int TYPE_NUMBER = 6;
-    double[] probabilities = generateProbabilities(TYPE_NUMBER);
-    if (probabilities == null) {
+    int typeNumber = 6;
+    double[] probabilities = generateProbabilities(typeNumber);
+    if (probabilities.length == 0) {
       return;
     }
     for (int sensorIndex = 0; sensorIndex < SENSOR_NUMBER; sensorIndex++) {
       double sensorPosition = (sensorIndex + 1) * 1.0 / SENSOR_NUMBER;
       int i;
-      for (i = 1; i <= TYPE_NUMBER; i++) {
+      for (i = 1; i <= typeNumber; i++) {
         if (sensorPosition > probabilities[i - 1] && sensorPosition <= probabilities[i]) {
           break;
         }
@@ -516,37 +529,32 @@ public class Config {
   }
 
   /** Generate Probabilities according to proportion(e.g. 1:1:1:1:1:1) */
-  private double[] generateProbabilities(int TYPE_NUMBER) {
+  private double[] generateProbabilities(int typeNumber) {
     // Probabilities for Types
-    double[] probabilities = new double[TYPE_NUMBER + 1];
+    double[] probabilities = new double[typeNumber + 1];
     // Origin proportion array
-    double[] proportions = new double[TYPE_NUMBER];
-    // unified proportion array
-    List<Double> proportion = new ArrayList<>();
+    double[] proportions = new double[typeNumber];
     LOGGER.info(
-        "Init SensorTypes: BOOLEAN:INT32:INT64:FLOAT:DOUBLE:TEXT=" + INSERT_DATATYPE_PROPORTION);
+        "Init SensorTypes: BOOLEAN:INT32:INT64:FLOAT:DOUBLE:TEXT= {}", INSERT_DATATYPE_PROPORTION);
 
     String[] split = INSERT_DATATYPE_PROPORTION.split(":");
-    if (split.length != TYPE_NUMBER) {
+    if (split.length != typeNumber) {
       LOGGER.error("INSERT_DATATYPE_PROPORTION error, please check this parameter.");
-      return null;
+      return new double[0];
     }
     double sum = 0;
-    for (int i = 0; i < TYPE_NUMBER; i++) {
-      proportions[i] = Double.parseDouble(split[i]);
-      sum += proportions[i];
-    }
-    for (int i = 0; i < TYPE_NUMBER; i++) {
-      if (sum != 0) {
-        proportion.add(proportions[i] / sum);
-      } else {
-        proportion.add(0.0);
-        LOGGER.error("The sum of INSERT_DATATYPE_PROPORTION is zero!");
+    for (int i = 0; i < typeNumber; i++) {
+      if (i != 0) {
+        proportions[i] += proportions[i - 1];
       }
+      proportions[i] += Double.parseDouble(split[i]);
+      sum += Double.parseDouble(split[i]);
     }
-    probabilities[0] = 0.0;
-    for (int i = 1; i <= TYPE_NUMBER; i++) {
-      probabilities[i] = probabilities[i - 1] + proportion.get(i - 1);
+    if (sum == 0) {
+      return probabilities;
+    }
+    for (int i = 1; i <= typeNumber; i++) {
+      probabilities[i] = proportions[i - 1] / sum;
     }
     return probabilities;
   }
@@ -1200,6 +1208,10 @@ public class Config {
     this.OPERATION_PROPORTION = OPERATION_PROPORTION;
   }
 
+  public int getOPERATION_PROPORTION_LEN() {
+    return this.OPERATION_PROPORTION_LEN;
+  }
+
   public int getQUERY_SENSOR_NUM() {
     return QUERY_SENSOR_NUM;
   }
@@ -1256,6 +1268,22 @@ public class Config {
     this.QUERY_SEED = QUERY_SEED;
   }
 
+  public long getRESULT_ROW_LIMIT() {
+    return RESULT_ROW_LIMIT;
+  }
+
+  public void setRESULT_ROW_LIMIT(long RESULT_ROW_LIMIT) {
+    this.RESULT_ROW_LIMIT = RESULT_ROW_LIMIT;
+  }
+
+  public boolean isALIGN_BY_DEVICE() {
+    return ALIGN_BY_DEVICE;
+  }
+
+  public void setALIGN_BY_DEVICE(boolean ALIGN_BY_DEVICE) {
+    this.ALIGN_BY_DEVICE = ALIGN_BY_DEVICE;
+  }
+
   public int getWORKLOAD_BUFFER_SIZE() {
     return WORKLOAD_BUFFER_SIZE;
   }
@@ -1294,6 +1322,14 @@ public class Config {
 
   public void setLOG_PRINT_INTERVAL(int LOG_PRINT_INTERVAL) {
     this.LOG_PRINT_INTERVAL = LOG_PRINT_INTERVAL;
+  }
+
+  public int getRESULT_PRINT_INTERVAL() {
+    return RESULT_PRINT_INTERVAL;
+  }
+
+  public void setRESULT_PRINT_INTERVAL(int RESULT_PRINT_INTERVAL) {
+    this.RESULT_PRINT_INTERVAL = RESULT_PRINT_INTERVAL;
   }
 
   public String getTEST_DATA_STORE_IP() {
@@ -1466,6 +1502,14 @@ public class Config {
 
   public void setINFLUXDB_ORG(String INFLUXDB_ORG) {
     this.INFLUXDB_ORG = INFLUXDB_ORG;
+  }
+
+  public int getCNOSDB_SHARD_NUMBER() {
+    return CNOSDB_SHARD_NUMBER;
+  }
+
+  public void setCNOSDB_SHARD_NUMBER(int CNOSDB_SHARD_NUMBER) {
+    this.CNOSDB_SHARD_NUMBER = CNOSDB_SHARD_NUMBER;
   }
 
   public void setIS_DOUBLE_WRITE(boolean IS_DOUBLE_WRITE) {
