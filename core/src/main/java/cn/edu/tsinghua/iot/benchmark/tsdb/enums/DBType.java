@@ -36,8 +36,8 @@ public enum DBType {
   PIArchive("PIArchive"),
   SQLite("SQLite"),
   IginX("IginX"),
-  SelfCheck("SelfCheck");
-
+  SelfCheck("SelfCheck"),
+  DolphinDB("DolphinDB");
   private String DBType;
 
   DBType(String DBType) {

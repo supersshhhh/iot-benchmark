@@ -91,4 +91,6 @@ public class Constants {
   public static final String PI_ARCHIVE_CLASS = "cn.edu.tsinghua.iot.benchmark.piarchive.PIArchive";
   public static final String IGINX_CLASS = "cn.edu.tsinghua.iot.benchmark.iginx.IginX";
   public static final String SELF_CHECK_CLASS = "cn.edu.tsinghua.iot.benchmark.tsdb.self.SelfCheck";
+  public static final String DOLPHINDB_CLASS = "cn.edu.tsinghua.iot.benchmark.dolphindb.DolphinDB";
+}
 }

@@ -63,7 +63,10 @@ public enum DBSwitch {
   DB_SQLITE(DBType.SQLite, null, null),
   DB_IginX(DBType.IginX, null, null),
   DB_CNOS(DBType.CnosDB, null, null),
-  DB_SelfCheck(DBType.SelfCheck, null, null);
+  DB_SelfCheck(DBType.SelfCheck, null, null),
+  DB_DOLPHINDB(DBType.DolphinDB, null, null);
+
+
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DBSwitch.class);
   final DBType type;

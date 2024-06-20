@@ -320,6 +320,12 @@
             </exclusions>
         </dependency>
 
+        <dependency>
+            <groupId>com.dolphindb</groupId>
+            <artifactId>javaapi</artifactId>
+            <version>3.00.0.2</version>
+        </dependency>
+
     </dependencies>
 
     <build>

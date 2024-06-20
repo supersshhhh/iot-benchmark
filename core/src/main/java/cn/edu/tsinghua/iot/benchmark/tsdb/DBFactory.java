@@ -38,7 +38,7 @@ public class DBFactory {
     String dbClass = "";
     try {
       switch (dbConfig.getDB_SWITCH()) {
-          // IoTDB 1.3
+        // IoTDB 1.3
         case DB_IOT_130_JDBC:
           dbClass = Constants.IOTDB130_JDBC_CLASS;
           break;
@@ -51,7 +51,7 @@ public class DBFactory {
             dbClass = Constants.IOTDB130_SESSION_CLASS;
           }
           break;
-          // IoTDB 1.1
+        // IoTDB 1.1
         case DB_IOT_110_JDBC:
           dbClass = Constants.IOTDB110_JDBC_CLASS;
           break;
@@ -64,7 +64,7 @@ public class DBFactory {
             dbClass = Constants.IOTDB110_SESSION_CLASS;
           }
           break;
-          // IoTDB 1.0
+        // IoTDB 1.0
         case DB_IOT_100_JDBC:
           dbClass = Constants.IOTDB100_JDBC_CLASS;
           break;
@@ -128,6 +128,9 @@ public class DBFactory {
         case DB_SelfCheck:
           dbClass = Constants.SELF_CHECK_CLASS;
           break;
+        case DB_DOLPHINDB: // 添加 DolphinDB case 分支
+          dbClass = Constants.DOLPHINDB_CLASS;
+          break;
         default:
           throw new SQLException("didn't support this database");
       }
@@ -135,10 +138,10 @@ public class DBFactory {
       Constructor<?> constructor = databaseClass.getConstructor(DBConfig.class);
       return (IDatabase) constructor.newInstance(dbConfig);
     } catch (InstantiationException
-        | IllegalAccessException
-        | ClassNotFoundException
-        | NoSuchMethodException
-        | InvocationTargetException e) {
+             | IllegalAccessException
+             | ClassNotFoundException
+             | NoSuchMethodException
+             | InvocationTargetException e) {
       e.printStackTrace();
     }
     throw new SQLException("init database " + dbConfig.getDB_SWITCH() + " failed");

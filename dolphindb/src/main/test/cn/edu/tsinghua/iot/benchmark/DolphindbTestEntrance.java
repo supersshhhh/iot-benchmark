@@ -17,26 +17,12 @@
  * under the License.
  */
 
-package cn.edu.tsinghua.iot.benchmark.tsdb.enums;
+package cn.edu.tsinghua.iot.benchmark;
 
-public enum DBVersion {
-  IOTDB_130("130"),
-  IOTDB_110("110"),
-  IOTDB_100("100"),
-  InfluxDB_2("2.x"),
-  TimescaleDB_Cluster("cluster"),
-  TDengine_3("3"),
-  DolphinDB_30002("3.00.0.2");  // 添加 DolphinDB 3.00.0.2 版本
+import java.sql.SQLException;
 
-
-  String version;
-
-  DBVersion(String version) {
-    this.version = version;
-  }
-
-  @Override
-  public String toString() {
-    return version;
-  }
+public class DolphindbTestEntrance {
+    public static void main(String[] args) throws SQLException {
+        App.main(args);
+    }
 }
